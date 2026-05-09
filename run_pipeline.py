@@ -1,6 +1,17 @@
 """
-Full RevIQ AI pipeline: generate data → features → train models → compute risk scores.
+Full RevIQ AI pipeline: generate data → features → train models → risk scores → RAG knowledge base.
 Run: python run_pipeline.py
+
+Steps:
+  1. Generate synthetic SaaS data
+  2. Build feature matrices
+  3. Train churn and ARR forecast models
+  4. Compute revenue risk scores
+  5. Generate Markdown reports (Phase 4a)
+  6. Build RAG vector index (Phase 4b)
+
+After this completes, launch the dashboard:
+  streamlit run app/streamlit_app.py
 """
 
 import sys
@@ -52,6 +63,18 @@ def main():
 
     from src.risk.revenue_risk_score import build_customer_risk_table
     build_customer_risk_table(churn_df_saved, probs, CONFIG)
+
+    # Step 5: Generate Markdown reports for the RAG knowledge base
+    logger.info("Step 5/6: Generating RAG knowledge base reports...")
+    from src.reports.generate_reports import generate_all_reports
+    report_paths = generate_all_reports()
+    logger.info(f"Generated {len(report_paths)} reports: {list(report_paths.keys())}")
+
+    # Step 6: Build the RAG vector index from the generated reports
+    logger.info("Step 6/6: Building RAG vector index...")
+    from src.rag.retriever import build_retriever
+    retriever = build_retriever(force_rebuild=True)
+    logger.info(f"Index ready: {retriever.n_chunks} chunks, backend: {retriever.backend_name}")
 
     logger.success("=== Pipeline complete. Launch dashboard: streamlit run app/streamlit_app.py ===")
 
