@@ -60,7 +60,7 @@ def build_churn_features(raw: dict[str, pd.DataFrame]) -> pd.DataFrame:
     merged = merged.merge(cs, on=["customer_id", "month"], how="left")
     merged = merged.merge(customers, on="customer_id", how="left")
 
-    # Lag features — what happened last month?
+    # Lag features: what happened last month?
     for col in ["mrr", "logins", "tickets", "nps", "health_score"]:
         merged[f"{col}_lag1"] = merged.groupby("customer_id")[col].shift(1)
 

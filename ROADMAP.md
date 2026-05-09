@@ -1,4 +1,4 @@
-# RevIQ AI — Product Roadmap
+# RevIQ AI: Product Roadmap
 
 This document describes how we will evolve the current MVP into a complete SaaS Revenue Intelligence & Retention Copilot. Each phase has a clear scope, a rationale, and the CV/interview value it unlocks.
 
@@ -22,11 +22,11 @@ What exists today:
 - Docker + docker-compose
 - MLflow experiment tracking
 
-**Gap:** The product works end-to-end, but it doesn't yet show enough *business insight*. The Executive Summary is informative but passive — it shows numbers, not recommendations. There is no way to simulate scenarios, optimize a budget, or ask questions in natural language.
+**Gap:** The product works end-to-end, but it doesn't yet show enough *business insight*. The Executive Summary is informative but passive: it shows numbers, not recommendations. There is no way to simulate scenarios, optimize a budget, or ask questions in natural language.
 
 ---
 
-## Phase 2 — Richer model evaluation and business insight
+## Phase 2: Richer model evaluation and business insight
 
 **Goal:** Make the existing models more informative and credible. Add the outputs that matter for a real business decision.
 
@@ -36,8 +36,8 @@ Right now, model performance is logged to MLflow but never visualized. We need a
 
 - **ROC curve** and **Precision-Recall curve** for both models on the same axes, so the trade-off is visible
 - **Confusion matrix** with business interpretation: "Of the 125 customers who churned in the test set, we correctly flagged 89 of them (recall = 71%). Of the customers we flagged, 43% actually churned (precision = 43%)."
-- **Feature importance bar chart** from SHAP global values — which signals matter most company-wide?
-- **Calibration plot** — when the model says 70% churn probability, is the actual rate actually 70%? If not, the numbers shown to executives are misleading.
+- **Feature importance bar chart** from SHAP global values: which signals matter most company-wide?
+- **Calibration plot**: when the model says 70% churn probability, is the actual rate actually 70%? If not, the numbers shown to executives are misleading.
 
 **Why this matters for interviews:** Anyone can train a model. Explaining *why* your evaluation choices reflect business reality is what distinguishes a data scientist from someone who just runs notebooks.
 
@@ -46,10 +46,10 @@ Right now, model performance is logged to MLflow but never visualized. We need a
 Add a module that clusters customers by behavior, independent of the churn model. K-Means or hierarchical clustering on usage + support + revenue features.
 
 Purpose: discover customer archetypes. For example:
-- **Power users** — high logins, high feature adoption, low tickets, expanding ARR
-- **At-risk engagers** — medium usage but deteriorating, not yet churning
-- **Disengaged** — low usage, low NPS, waiting to leave
-- **High-touch dependents** — high support tickets but also high NPS, sticky but costly
+- **Power users**: high logins, high feature adoption, low tickets, expanding ARR
+- **At-risk engagers**: medium usage but deteriorating, not yet churning
+- **Disengaged**: low usage, low NPS, waiting to leave
+- **High-touch dependents**: high support tickets but also high NPS, sticky but costly
 
 Each cluster gets a label and a recommended action, displayed on the dashboard.
 
@@ -59,15 +59,15 @@ Each cluster gets a label and a recommended action, displayed on the dashboard.
 
 Right now SHAP outputs are text-only in the dashboard. Add:
 
-- A waterfall chart for one customer — shows the model's base prediction, then each feature pushing it up or down, ending at the final prediction
-- A beeswarm plot for global importance — shows how each feature affects predictions across the entire customer base
+- A waterfall chart for one customer, showing the model's base prediction, then each feature pushing it up or down, ending at the final prediction
+- A beeswarm plot for global importance, showing how each feature affects predictions across the entire customer base
 - Color coding: features pushing toward churn in red, features reducing risk in blue
 
 These are standard SHAP visualizations that interviewers will recognize immediately.
 
 ---
 
-## Phase 3 — Executive intelligence layer
+## Phase 3: Executive intelligence layer
 
 **Goal:** Move from "showing data" to "recommending actions." This is the difference between a reporting tool and an intelligence platform.
 
@@ -118,13 +118,13 @@ Track which high-risk customers were saved vs. which churned, and compute:
 - Average time from flag to intervention
 - Which SHAP drivers were most predictive of actual churn vs. false alarms
 
-This requires a feedback loop in the data — simulating that some customers flagged as high-risk receive an intervention and have their churn probability reduced.
+This requires a feedback loop in the data, simulating that some customers flagged as high-risk receive an intervention and have their churn probability reduced.
 
 ---
 
-## Phase 4 — RAG Revenue Analyst Copilot
+## Phase 4: RAG Revenue Analyst Copilot
 
-**Goal:** Allow any user — including non-technical ones — to ask questions about the data and get clear, sourced answers.
+**Goal:** Allow any user (including non-technical ones) to ask questions about the data and get clear, sourced answers.
 
 ### What it does
 
@@ -136,25 +136,25 @@ A chat interface where a user can type:
 > "What would happen to revenue if we lost our top 5 Enterprise customers?"
 > "Give me a retention brief for customer C0852."
 
-The system reads from the model outputs, risk reports, and monthly summaries — not from the raw CSV files — and returns a clear business answer with references to the specific data it used.
+The system reads from the model outputs, risk reports, and monthly summaries (not from the raw CSV files) and returns a clear business answer with references to the specific data it used.
 
 ### How it works (RAG architecture)
 
-**Step 1 — Report generation:** After each pipeline run, automatically generate structured Markdown reports:
+**Step 1: Report generation:** After each pipeline run, automatically generate structured Markdown reports:
 - Monthly revenue summary (ARR, churn, expansion, target gap)
 - Segment-level churn summary
 - Top 20 at-risk customers with SHAP drivers
 - Model performance summary
 
-**Step 2 — Ingestion and chunking:** Each report is split into chunks (paragraphs or sections), each chunk gets metadata: report date, segment, topic.
+**Step 2: Ingestion and chunking:** Each report is split into chunks (paragraphs or sections), each chunk gets metadata: report date, segment, topic.
 
-**Step 3 — Embeddings:** Each chunk is converted to a vector embedding using the OpenAI embeddings API or a local model (sentence-transformers).
+**Step 3: Embeddings:** Each chunk is converted to a vector embedding using the OpenAI embeddings API or a local model (sentence-transformers).
 
-**Step 4 — Vector store:** Embeddings are stored in Chroma (a local vector database). This allows fast semantic search.
+**Step 4: Vector store:** Embeddings are stored in Chroma (a local vector database). This allows fast semantic search.
 
-**Step 5 — Retrieval:** When a user asks a question, the question is also embedded. The vector store finds the most relevant chunks. The top 5–10 chunks are passed to the LLM as context.
+**Step 5: Retrieval:** When a user asks a question, the question is also embedded. The vector store finds the most relevant chunks. The top 5-10 chunks are passed to the LLM as context.
 
-**Step 6 — Generation:** The LLM (via OpenAI API + LangChain) generates an answer grounded in the retrieved context, with citations like: *"According to the May 2026 segment report, Mid-Market churn increased by 2.1 percentage points, primarily driven by declining feature adoption."*
+**Step 6: Generation:** The LLM (via OpenAI API + LangChain) generates an answer grounded in the retrieved context, with citations like: *"According to the May 2026 segment report, Mid-Market churn increased by 2.1 percentage points, primarily driven by declining feature adoption."*
 
 ### Tech stack for this phase
 
@@ -171,13 +171,13 @@ The system reads from the model outputs, risk reports, and monthly summaries —
 
 ---
 
-## Phase 5 — Production engineering layer
+## Phase 5: Production engineering layer
 
 **Goal:** Make the project look and behave like a real production system, not just a research project.
 
 ### 5a. Monitoring
 
-When a model is deployed, it can degrade silently — either because the input data changes (data drift) or because the model's predictions become less accurate (model performance drift).
+When a model is deployed, it can degrade silently, either because the input data changes (data drift) or because the model's predictions become less accurate (model performance drift).
 
 We will add:
 - **Data drift report** using Evidently AI: each time new data arrives, compare the distribution of each feature against the training data distribution. Flag features that have shifted.
@@ -220,7 +220,7 @@ The goal is a live URL you can put in your CV and LinkedIn post.
 
 ---
 
-## Phase 6 — GitHub README and CV positioning
+## Phase 6: GitHub README and CV positioning
 
 **Goal:** Package everything as a professional portfolio piece.
 
@@ -270,7 +270,7 @@ forecasts ARR, and explains revenue risk for SaaS companies.
 After all phases are complete, the CV section could read:
 
 ```
-RevIQ AI — End-to-End ML and LLM Platform for SaaS Revenue Intelligence
+RevIQ AI: End-to-End ML and LLM Platform for SaaS Revenue Intelligence
 github.com/[username]/reviq-ai | [live demo link]
 
 • Built an end-to-end ML platform for SaaS churn prediction, ARR forecasting,
@@ -297,7 +297,7 @@ github.com/[username]/reviq-ai | [live demo link]
 
 ### 6c. LinkedIn post
 
-A short post announcing the project. Should be written from a personal angle — "I wanted to combine my FP&A background with ML" — not as a technical announcement. Post a GIF of the dashboard in action.
+A short post announcing the project. Should be written from a personal angle ("I wanted to combine my FP&A background with ML"), not as a technical announcement. Post a GIF of the dashboard in action.
 
 ---
 

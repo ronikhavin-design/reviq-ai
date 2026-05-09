@@ -95,7 +95,7 @@ def plot_global_importance(
     bars = ax.barh(labels, values, color="#2196F3", edgecolor="white")
     ax.bar_label(bars, fmt="%.4f", padding=3, fontsize=9)
     ax.set_xlabel("Mean |SHAP Value| (average impact on churn prediction)", fontsize=11)
-    ax.set_title(f"Global SHAP Feature Importance — Top {top_n} Churn Drivers", fontsize=13, fontweight="bold")
+    ax.set_title(f"Global SHAP Feature Importance: Top {top_n} Churn Drivers", fontsize=13, fontweight="bold")
     ax.spines["top"].set_visible(False)
     ax.spines["right"].set_visible(False)
     plt.tight_layout()
@@ -134,7 +134,7 @@ def plot_customer_bar(
     ax.axvline(0, color="black", linewidth=0.8)
     ax.set_xlabel("SHAP Value  (positive = pushes toward churn, negative = reduces risk)", fontsize=11)
     ax.set_title(
-        f"Churn Risk Drivers — Customer {customer_id}  ({churn_prob:.0%} predicted risk)",
+        f"Churn Risk Drivers: Customer {customer_id} ({churn_prob:.0%} predicted risk)",
         fontsize=13,
         fontweight="bold",
     )

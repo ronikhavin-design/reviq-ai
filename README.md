@@ -1,8 +1,8 @@
-# RevIQ AI — SaaS Revenue Intelligence Platform
+# RevIQ AI: SaaS Revenue Intelligence Platform
 
 RevIQ AI is an end-to-end ML platform that predicts customer churn, forecasts ARR, and explains revenue risk for SaaS companies. It combines machine learning, SHAP explainability, and a FastAPI + Streamlit stack to give CS and Finance teams a single view of who is at risk, why, and what it costs.
 
-Built as a portfolio project to demonstrate ML engineering, financial reasoning, and production system design — inspired by real FP&A work at an enterprise software company.
+Built as a portfolio project to demonstrate ML engineering, financial reasoning, and production system design, inspired by real FP&A work at an enterprise software company.
 
 ---
 
@@ -10,7 +10,7 @@ Built as a portfolio project to demonstrate ML engineering, financial reasoning,
 
 SaaS companies lose revenue when customers churn silently. By the time a CS manager notices the signal, the renewal conversation is already too late. The problem has three layers:
 
-1. **Detection:** Who is likely to churn — and how confident are we?
+1. **Detection:** Who is likely to churn, and how confident are we?
 2. **Prioritization:** Which customers represent the most ARR at risk right now?
 3. **Explanation:** Why is this customer flagged? What specific signals drove the model's prediction?
 
@@ -33,13 +33,13 @@ RevIQ AI addresses all three.
 
 ## Dashboard
 
-> **Screenshot placeholder — run `streamlit run app/streamlit_app.py` to see it live**
+> **Screenshot placeholder. Run `streamlit run app/streamlit_app.py` to see it live.**
 
 The dashboard has 4 pages:
-- **Executive Summary** — ARR vs target, risk distribution, top 10 at-risk accounts
-- **Churn Risk** — full customer risk table, sortable by revenue at risk
-- **ARR Forecast** — 3-month forward ARR projection vs actuals
-- **Customer Deep Dive** — per-customer SHAP explanation of churn drivers
+- **Executive Summary**: ARR vs target, risk distribution, top 10 at-risk accounts
+- **Churn Risk**: full customer risk table, sortable by revenue at risk
+- **ARR Forecast**: 3-month forward ARR projection vs actuals
+- **Customer Deep Dive**: per-customer SHAP explanation of churn drivers
 
 ---
 
@@ -177,18 +177,18 @@ Exploratory analysis of 1,000 synthetic SaaS customers across 24 months:
 
 Full model evaluation with business context:
 
-- **Class imbalance visualization** — shows why accuracy is a broken metric (predicting no churn for every customer achieves 98%+ accuracy while catching zero churners)
-- **ROC vs PR curve comparison** — demonstrates that ROC-AUC is misleading for imbalanced data; PR-AUC is the right lens
-- **Confusion matrix** — translates model errors into business costs: false negative = lost ARR, false positive = wasted CS call
-- **Calibration plot** — checks whether predicted probabilities can be trusted as inputs to ARR-at-risk calculations
-- **SHAP global importance** — which features actually drive churn predictions across the full customer base
+- **Class imbalance visualization**: shows why accuracy is a broken metric (predicting no churn for every customer achieves 98%+ accuracy while catching zero churners)
+- **ROC vs PR curve comparison**: demonstrates that ROC-AUC is misleading for imbalanced data; PR-AUC is the right lens
+- **Confusion matrix**: translates model errors into business costs (false negative = lost ARR, false positive = wasted CS call)
+- **Calibration plot**: checks whether predicted probabilities can be trusted as inputs to ARR-at-risk calculations
+- **SHAP global importance**: which features actually drive churn predictions across the full customer base
 
 ### SHAP visualization improvements (`src/explainability/shap_explainer.py`)
 
 Two new functions added:
 
-- `plot_global_importance()` — publication-quality horizontal bar chart of mean |SHAP| per feature, saved as PNG to `data/reports/plots/`
-- `plot_customer_bar()` — per-customer diverging bar chart: red bars increase churn risk, blue bars reduce it; saved per customer ID
+- `plot_global_importance()`: publication-quality horizontal bar chart of mean |SHAP| per feature, saved as PNG to `data/reports/plots/`
+- `plot_customer_bar()`: per-customer diverging bar chart, red bars increase churn risk and blue bars reduce it, saved per customer ID
 
 ---
 
@@ -209,16 +209,16 @@ See [`ROADMAP.md`](ROADMAP.md) for full scope and rationale for each phase.
 
 ## Key Design Decisions
 
-**Why PR-AUC over ROC-AUC?** With a 1.2% monthly churn rate, accuracy is misleading: a model that never flags any churn still achieves 98%+ accuracy. ROC-AUC is also unreliable here — it is dominated by the large number of true negatives, which are abundant when the positive class is rare. Both models score 0.97 on ROC-AUC despite XGBoost being 33% better at actually finding churners. PR-AUC ignores true negatives entirely and directly measures performance on the rare class we care about.
+**Why PR-AUC over ROC-AUC?** With a 1.2% monthly churn rate, accuracy is misleading: a model that never flags any churn still achieves 98%+ accuracy. ROC-AUC is also unreliable here, dominated by the large number of true negatives, which are abundant when the positive class is rare. Both models score 0.97 on ROC-AUC despite XGBoost being 33% better at actually finding churners. PR-AUC ignores true negatives entirely and directly measures performance on the rare class we care about.
 
-**Why XGBoost over Logistic Regression?** Both models reach ROC-AUC 0.97. But XGBoost achieves PR-AUC 0.32 vs LR's 0.24 — a 33% improvement in practical detection ability. XGBoost captures non-linear interactions between usage trends, NPS, and renewal timing that LR cannot model.
+**Why XGBoost over Logistic Regression?** Both models reach ROC-AUC 0.97. But XGBoost achieves PR-AUC 0.32 vs LR's 0.24, a 33% improvement in practical detection ability. XGBoost captures non-linear interactions between usage trends, NPS, and renewal timing that LR cannot model.
 
 **Why `scale_pos_weight=5`?** The business cost of a false negative (missed churner = lost ARR) is higher than a false positive (unnecessary CS call). This parameter encodes that asymmetry directly into the loss function.
 
-**Why SHAP over built-in feature importance?** XGBoost's native importance counts split frequency, which is biased toward high-cardinality features. SHAP measures the actual magnitude of each feature's contribution to each individual prediction — essential for explaining why a specific customer was flagged.
+**Why SHAP over built-in feature importance?** XGBoost's native importance counts split frequency, which is biased toward high-cardinality features. SHAP measures the actual magnitude of each feature's contribution to each individual prediction, essential for explaining why a specific customer was flagged.
 
 ---
 
 ## Author
 
-Built by Roni Khavin — FP&A Analyst transitioning into AI/ML engineering.
+Built by Roni Khavin, FP&A Analyst transitioning into AI/ML engineering.

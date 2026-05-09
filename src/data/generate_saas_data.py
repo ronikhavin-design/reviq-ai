@@ -266,7 +266,7 @@ def generate_all(cfg: dict | None = None, save: bool = True) -> dict[str, pd.Dat
         for name, df in datasets.items():
             path = SYNTHETIC_DIR / f"{name}.csv"
             df.to_csv(path, index=False)
-            logger.info(f"Saved {name}.csv — {len(df):,} rows")
+            logger.info(f"Saved {name}.csv: {len(df):,} rows")
 
     logger.success("Data generation complete.")
     return datasets

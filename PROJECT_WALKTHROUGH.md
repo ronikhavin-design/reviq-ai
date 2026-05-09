@@ -1,4 +1,4 @@
-# RevIQ AI — Project Walkthrough
+# RevIQ AI: Project Walkthrough
 
 This document explains the current MVP from top to bottom: what the project does, how each piece works, and why each decision was made. Written for someone who wants to understand the full picture before touching the code.
 
@@ -134,11 +134,11 @@ Enterprise:   $15,000 – $80,000 / month
 The critical design choice: **customers who will eventually churn show deteriorating signals before they leave.** This is what makes the data useful for a predictive model.
 
 For a customer who will churn:
-- **Usage decays gradually** — logins and feature adoption trend downward over time
-- **Support tickets increase** — they have more problems and open more tickets
-- **Sentiment drops** — support interactions become more negative
-- **NPS falls** — from ~6 toward ~4
-- **CS touchpoints become infrequent** — no one is reaching out to save them
+- **Usage decays gradually**: logins and feature adoption trend downward over time
+- **Support tickets increase**: they have more problems and open more tickets
+- **Sentiment drops**: support interactions become more negative
+- **NPS falls**: from ~6 toward ~4
+- **CS touchpoints become infrequent**: no one is reaching out to save them
 
 For a healthy customer:
 - Usage stays stable or grows
@@ -187,7 +187,7 @@ After this, every row represents one customer in one month, with all signals in 
 
 ### Step 2: Rolling averages and trends
 
-A single month's data is noisy. A 3-month rolling average is more stable. More importantly, the *trend* — whether a signal is going up or down — is often more predictive than its current value.
+A single month's data is noisy. A 3-month rolling average is more stable. More importantly, the *trend* (whether a signal is going up or down) is often more predictive than its current value.
 
 ```python
 # Average logins over last 3 months
@@ -263,7 +263,7 @@ The model learns which combination of features (low usage + high tickets + renew
 
 ### Why 1.2% churn rate matters
 
-Only 1.2% of rows are churned customers. This means the dataset is imbalanced: there are about 83 non-churning rows for every 1 churning row. A naive model that always predicts "not churning" would be 98.8% accurate — but completely useless for the business.
+Only 1.2% of rows are churned customers. This means the dataset is imbalanced: there are about 83 non-churning rows for every 1 churning row. A naive model that always predicts "not churning" would be 98.8% accurate, but completely useless for the business.
 
 To fix this, XGBoost is configured with `scale_pos_weight: 5`, which tells the model to treat each positive (churn) example as if it were worth 5 negative examples. This forces the model to focus on getting churns right.
 
@@ -315,8 +315,8 @@ This means you can always compare runs, reproduce results, and see exactly which
 ### The saved outputs
 
 After training, two files are saved to `models/`:
-- `churn_model.pkl` — the trained XGBoost model
-- `churn_features.pkl` — the list of feature names the model expects (order matters)
+- `churn_model.pkl`: the trained XGBoost model
+- `churn_features.pkl`: the list of feature names the model expects (order matters)
 
 ---
 
@@ -360,11 +360,11 @@ A separate column makes the financial impact concrete:
 arr_at_risk = churn_probability × arr
 ```
 
-If a customer has $300,000 ARR and 80% churn probability, the ARR at risk is $240,000. This is what the CS team or executive should see — not a probability number, but a dollar figure.
+If a customer has $300,000 ARR and 80% churn probability, the ARR at risk is $240,000. This is what the CS team or executive should see: a dollar figure, not a raw probability.
 
 ### The output
 
-`data/reports/customer_risk_scores.csv` — one row per customer, sorted by risk score descending. This file feeds directly into the dashboard.
+`data/reports/customer_risk_scores.csv`: one row per customer, sorted by risk score descending. This file feeds directly into the dashboard.
 
 From our run:
 ```
@@ -372,7 +372,7 @@ High risk:   35 customers
 Medium risk: 82 customers
 Low risk:    838 customers
 
-Highest-risk customer: C0852 — $938,400 ARR, 96.8% churn probability, $908,725 at risk
+Highest-risk customer: C0852, $938,400 ARR, 96.8% churn probability, $908,725 at risk
 ```
 
 ---
@@ -390,7 +390,7 @@ SHAP values come from cooperative game theory. The idea: treat each feature as a
 A positive SHAP value means: "this feature pushed the churn probability higher than average."
 A negative SHAP value means: "this feature pulled the churn probability lower than average."
 
-### TreeExplainer — fast SHAP for tree models
+### TreeExplainer: fast SHAP for tree models
 
 XGBoost is a tree-based model, so we use `shap.TreeExplainer`, which computes exact SHAP values efficiently (no sampling needed):
 
@@ -457,8 +457,8 @@ The dashboard has four pages:
 **Purpose:** Give a VP or CFO the one-screen view they need.
 
 **Data sources:**
-- `data/synthetic/targets.csv` — for the ARR trend chart
-- `data/reports/customer_risk_scores.csv` — for the risk metrics
+- `data/synthetic/targets.csv` (for the ARR trend chart)
+- `data/reports/customer_risk_scores.csv` (for the risk metrics)
 
 **What it shows:**
 - Current ARR vs. last month
@@ -484,9 +484,9 @@ The dashboard has four pages:
 **Purpose:** Show how model predictions compare to actual ARR over time.
 
 **Data sources:**
-- `data/processed/arr_features.csv` — for the model inputs
-- `models/arr_forecast_model.pkl` — the trained model
-- `data/synthetic/targets.csv` — for the target line
+- `data/processed/arr_features.csv` (for the model inputs)
+- `models/arr_forecast_model.pkl` (the trained model)
+- `data/synthetic/targets.csv` (for the target line)
 
 **What it shows:**
 - A chart with three lines: Actual ARR, Model-Predicted ARR, and Target ARR
@@ -537,7 +537,7 @@ configs/model_config.yaml
         │
 [3b] src/models/train_arr_forecast.py
         │
-        │  uses TimeSeriesSplit (no shuffling — time order preserved)
+        │  uses TimeSeriesSplit (no shuffling, time order preserved)
         │  trains XGBoost regressor on lag + rolling ARR features
         │  saves: models/arr_forecast_model.pkl, models/arr_features.pkl
         ▼
@@ -559,7 +559,7 @@ configs/model_config.yaml
         │  renders: 4-page interactive dashboard
         │  on Customer Deep Dive: runs SHAP on-the-fly for selected customer
         ▼
-     Browser — live dashboard at http://localhost:8501
+     Browser: live dashboard at http://localhost:8501
 ```
 
 **Everything is controlled by `run_pipeline.py`**, which runs steps 1–4 in sequence. Step 5 is the dashboard, launched separately.
