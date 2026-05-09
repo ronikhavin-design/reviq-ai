@@ -20,6 +20,8 @@ from src.explainability.shap_explainer import (
 )
 from src.scenarios.scenario_simulator import ScenarioInput, run_scenario
 from src.scenarios.retention_optimizer import OptimizerInput, run_optimizer
+from src.rag.copilot import answer_question
+from src.rag.retriever import build_retriever
 
 st.set_page_config(
     page_title="RevIQ AI: Revenue Intelligence",
@@ -55,6 +57,13 @@ def risk_badge(level: str) -> str:
     colors = {"High": "🔴", "Medium": "🟡", "Low": "🟢"}
     return colors.get(level, "⚪")
 
+@st.cache_resource
+def load_copilot_retriever():
+    try:
+        return build_retriever()
+    except Exception:
+        return None
+
 
 # ── Sidebar ──────────────────────────────────────────────────────────────────
 
@@ -62,7 +71,7 @@ with st.sidebar:
     st.title("RevIQ AI")
     st.caption("SaaS Revenue Intelligence Platform")
     st.divider()
-    page = st.radio("Navigate", ["Executive Summary", "Churn Risk", "ARR Forecast", "Customer Deep Dive", "Retention Planning"])
+    page = st.radio("Navigate", ["Executive Summary", "Churn Risk", "ARR Forecast", "Customer Deep Dive", "Retention Planning", "Revenue Copilot"])
 
 
 # ── Page: Executive Summary ──────────────────────────────────────────────────
@@ -464,3 +473,87 @@ elif page == "Retention Planning":
                     for k, v in opt.exclusion_counts.items()
                 ])
                 st.dataframe(excl_df, use_container_width=True, hide_index=True)
+
+
+# ── Page: Revenue Copilot ────────────────────────────────────────────────────
+
+elif page == "Revenue Copilot":
+    st.title("Revenue Copilot")
+    st.caption(
+        "Ask plain-English questions about your SaaS revenue, churn risk, and retention strategy. "
+        "Answers are grounded in the RevIQ AI knowledge base."
+    )
+
+    retriever = load_copilot_retriever()
+    if retriever is None:
+        st.warning(
+            "No knowledge base found. Run `python -m src.reports.generate_reports` "
+            "to build the report index, then reload the dashboard."
+        )
+        st.stop()
+
+    _EXAMPLES = [
+        "Which customers are most at risk?",
+        "What is the current ARR risk summary?",
+        "What should the CS team focus on this week?",
+        "How is the model performing?",
+    ]
+
+    if "copilot_question" not in st.session_state:
+        st.session_state.copilot_question = ""
+
+    st.markdown("**Example questions**")
+    ex_cols = st.columns(len(_EXAMPLES))
+    for i, ex in enumerate(_EXAMPLES):
+        if ex_cols[i].button(ex, use_container_width=True):
+            st.session_state.copilot_question = ex
+
+    with st.form("copilot_form"):
+        question = st.text_input(
+            "Ask a business question:",
+            value=st.session_state.copilot_question,
+            placeholder="e.g. Which customers are most at risk of churning?",
+        )
+        submitted = st.form_submit_button("Ask Copilot", type="primary")
+
+    if submitted and question.strip():
+        st.session_state.copilot_question = question.strip()
+        with st.spinner("Searching knowledge base and generating answer..."):
+            try:
+                result = answer_question(
+                    question.strip(),
+                    top_k=5,
+                    retriever=retriever,
+                )
+            except Exception as e:
+                st.error(f"Copilot error: {e}")
+                st.stop()
+
+        if result.backend == "fallback":
+            st.info(
+                "Showing retrieved knowledge base excerpts. "
+                "Set the OPENAI_API_KEY environment variable to receive an interpreted answer."
+            )
+
+        st.subheader("Answer")
+        st.markdown(result.answer)
+
+        if result.sources_text:
+            st.divider()
+            st.markdown(result.sources_text)
+
+        if result.n_chunks_retrieved > 0:
+            st.divider()
+            st.subheader("Evidence")
+            for i, (chunk_text, score) in enumerate(
+                zip(
+                    result.context_used.split("\n\n---\n\n")[:-1],
+                    result.retrieval_scores,
+                ),
+                start=1,
+            ):
+                header_line = chunk_text.split("\n")[0] if chunk_text else f"Chunk {i}"
+                label = header_line.replace("[Source: ", "").replace("]", "")
+                with st.expander(f"{i}. {label} (relevance: {score:.0%})"):
+                    body_lines = chunk_text.split("\n")[1:]
+                    st.markdown("\n".join(body_lines).strip())
