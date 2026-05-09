@@ -76,6 +76,81 @@ def global_feature_importance(shap_values: np.ndarray, feature_names: list[str])
     return df
 
 
+def plot_global_importance(
+    shap_values: np.ndarray,
+    feature_names: list[str],
+    top_n: int = 15,
+    save_dir: Path | None = None,
+) -> Path:
+    """Horizontal bar chart of mean |SHAP| per feature. Saved as PNG."""
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+
+    importance = global_feature_importance(shap_values, feature_names).head(top_n)
+    labels = importance["feature"].tolist()[::-1]
+    values = importance["mean_abs_shap"].tolist()[::-1]
+
+    fig, ax = plt.subplots(figsize=(10, max(4, 0.45 * top_n + 1.5)))
+    bars = ax.barh(labels, values, color="#2196F3", edgecolor="white")
+    ax.bar_label(bars, fmt="%.4f", padding=3, fontsize=9)
+    ax.set_xlabel("Mean |SHAP Value| (average impact on churn prediction)", fontsize=11)
+    ax.set_title(f"Global SHAP Feature Importance — Top {top_n} Churn Drivers", fontsize=13, fontweight="bold")
+    ax.spines["top"].set_visible(False)
+    ax.spines["right"].set_visible(False)
+    plt.tight_layout()
+
+    out_dir = (save_dir or REPORTS_DIR) / "plots"
+    out_dir.mkdir(parents=True, exist_ok=True)
+    out_path = out_dir / "shap_global_importance.png"
+    fig.savefig(out_path, dpi=150, bbox_inches="tight")
+    plt.close(fig)
+    logger.info(f"Saved: {out_path}")
+    return out_path
+
+
+def plot_customer_bar(
+    shap_values: np.ndarray,
+    feature_names: list[str],
+    customer_idx: int,
+    customer_id: str,
+    churn_prob: float,
+    top_n: int = 10,
+    save_dir: Path | None = None,
+) -> Path:
+    """Diverging bar chart of per-customer SHAP values. Red = increases risk, blue = decreases risk."""
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+
+    sv = shap_values[customer_idx]
+    pairs = sorted(zip(feature_names, sv), key=lambda x: abs(x[1]), reverse=True)[:top_n]
+    labels = [FEATURE_LABELS.get(name, name) for name, _ in pairs][::-1]
+    values = [float(val) for _, val in pairs][::-1]
+    colors = ["#F44336" if v > 0 else "#2196F3" for v in values]
+
+    fig, ax = plt.subplots(figsize=(10, max(4, 0.45 * top_n + 1.5)))
+    ax.barh(labels, values, color=colors, edgecolor="white")
+    ax.axvline(0, color="black", linewidth=0.8)
+    ax.set_xlabel("SHAP Value  (positive = pushes toward churn, negative = reduces risk)", fontsize=11)
+    ax.set_title(
+        f"Churn Risk Drivers — Customer {customer_id}  ({churn_prob:.0%} predicted risk)",
+        fontsize=13,
+        fontweight="bold",
+    )
+    ax.spines["top"].set_visible(False)
+    ax.spines["right"].set_visible(False)
+    plt.tight_layout()
+
+    out_dir = (save_dir or REPORTS_DIR) / "plots"
+    out_dir.mkdir(parents=True, exist_ok=True)
+    out_path = out_dir / f"shap_customer_{customer_id}.png"
+    fig.savefig(out_path, dpi=150, bbox_inches="tight")
+    plt.close(fig)
+    logger.info(f"Saved: {out_path}")
+    return out_path
+
+
 def format_churn_explanation(customer_id: str, churn_prob: float, drivers: list[dict]) -> str:
     lines = [
         f"Customer {customer_id}: {churn_prob:.0%} churn risk",
