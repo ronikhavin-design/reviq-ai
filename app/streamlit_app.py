@@ -316,57 +316,62 @@ elif page == "Retention Planning":
             avg_discount_per_customer=float(avg_discount),
             target_risk_levels=target_levels if target_levels else ["High", "Medium"],
         )
+        _constraint_label = {"cs_capacity": "CS Capacity", "budget": "Budget", "none": "None"}
+
+        sim = None
         try:
             sim = run_scenario(sim_inputs, risk_scores=risk)
         except Exception as e:
             st.error(f"Scenario simulation failed: {e}")
-            st.stop()
 
-        c1, c2, c3, c4 = st.columns(4)
-        c1.metric("Eligible Customers", sim.customers_eligible)
-        c2.metric("Targeted Customers", sim.customers_targeted)
-        c3.metric("Excluded", sim.customers_excluded)
-        c4.metric("Binding Constraint", sim.binding_constraint.replace("_", " ").title())
+        if sim is not None:
+            c1, c2, c3, c4 = st.columns(4)
+            c1.metric("Eligible Customers", sim.customers_eligible)
+            c2.metric("Targeted Customers", sim.customers_targeted)
+            c3.metric("Excluded", sim.customers_excluded)
+            c4.metric("Binding Constraint", _constraint_label.get(sim.binding_constraint, sim.binding_constraint.title()))
 
-        c5, c6, c7 = st.columns(3)
-        c5.metric("ARR at Risk (before)", f"${sim.original_arr_at_risk/1e6:.2f}M")
-        c6.metric("Expected ARR Saved (binary)", f"${sim.expected_arr_saved/1e6:.2f}M",
-                  f"ROI {sim.roi_multiple:.1f}x")
-        c7.metric("Expected ARR Saved (continuous)", f"${sim.expected_arr_saved_by_reduction/1e6:.2f}M",
-                  f"ROI {sim.roi_multiple_by_reduction:.1f}x")
+            c5, c6, c7 = st.columns(3)
+            c5.metric("ARR at Risk (Before)", f"${sim.original_arr_at_risk/1e6:.2f}M")
+            c6.metric("Expected ARR Saved (Conservative)", f"${sim.expected_arr_saved/1e6:.2f}M",
+                      f"ROI {sim.roi_multiple:.1f}x")
+            c7.metric("Expected ARR Saved (Optimistic)", f"${sim.expected_arr_saved_by_reduction/1e6:.2f}M",
+                      f"ROI {sim.roi_multiple_by_reduction:.1f}x")
 
-        st.subheader("Binary vs Continuous ARR Impact")
-        bar_data = pd.DataFrame({
-            "Model": ["Binary (retention_success_rate)", "Continuous (churn_reduction_rate)"],
-            "ARR Saved ($M)": [
-                sim.expected_arr_saved / 1e6,
-                sim.expected_arr_saved_by_reduction / 1e6,
-            ],
-        })
-        fig_bar = px.bar(
-            bar_data, x="ARR Saved ($M)", y="Model", orientation="h",
-            color="Model",
-            color_discrete_sequence=["#2196F3", "#FF9800"],
-            height=220,
-        )
-        fig_bar.update_layout(
-            showlegend=False, margin=dict(t=10),
-            yaxis=dict(autorange="reversed"),
-        )
-        st.plotly_chart(fig_bar, use_container_width=True)
+            st.subheader("Conservative vs Optimistic ARR Impact")
+            bar_data = pd.DataFrame({
+                "Model": ["Binary (Conservative)", "Continuous (Optimistic)"],
+                "ARR Saved ($M)": [
+                    sim.expected_arr_saved / 1e6,
+                    sim.expected_arr_saved_by_reduction / 1e6,
+                ],
+            })
+            fig_bar = px.bar(
+                bar_data, x="ARR Saved ($M)", y="Model", orientation="h",
+                color="Model",
+                color_discrete_sequence=["#2196F3", "#FF9800"],
+                height=220,
+            )
+            fig_bar.update_layout(
+                showlegend=False, margin=dict(t=10),
+                yaxis=dict(autorange="reversed"),
+            )
+            st.plotly_chart(fig_bar, use_container_width=True)
 
-        if sim.impact_by_risk_level:
-            st.subheader("Impact by Risk Level")
-            impact_rows = [
-                {
-                    "Risk Level": r.risk_level,
-                    "Targeted": r.customers_targeted,
-                    "Saved (binary)": r.customers_saved,
-                    "ARR Saved ($)": f"${r.expected_arr_saved:,.0f}",
-                }
-                for r in sim.impact_by_risk_level
-            ]
-            st.dataframe(pd.DataFrame(impact_rows), use_container_width=True, hide_index=True)
+            if sim.impact_by_risk_level:
+                st.subheader("Impact by Risk Level")
+                impact_rows = [
+                    {
+                        "Risk Level": r.risk_level,
+                        "Eligible": r.customers_eligible,
+                        "Targeted": r.customers_targeted,
+                        "Saved (Conservative)": r.customers_saved,
+                        "ARR at Risk": f"${r.original_arr_at_risk:,.0f}",
+                        "ARR Saved": f"${r.expected_arr_saved:,.0f}",
+                    }
+                    for r in sim.impact_by_risk_level
+                ]
+                st.dataframe(pd.DataFrame(impact_rows), use_container_width=True, hide_index=True)
 
     # ── Tab: Retention Optimizer ─────────────────────────────────────────────
 
@@ -379,69 +384,83 @@ elif page == "Retention Planning":
             avg_discount_per_customer=float(avg_discount),
             avg_cs_hours_per_customer=float(avg_hours),
         )
+
+        opt = None
         try:
             opt = run_optimizer(opt_inputs, risk_scores=risk)
         except Exception as e:
             st.error(f"Optimizer failed: {e}")
-            st.stop()
 
-        o1, o2, o3, o4 = st.columns(4)
-        o1.metric("Eligible Customers", opt.n_eligible)
-        o2.metric("Selected", opt.n_selected)
-        o3.metric("Excluded", opt.n_excluded)
-        o4.metric("Expected ROI", f"{opt.expected_roi:.1f}x")
+        if opt is not None:
+            o1, o2, o3, o4 = st.columns(4)
+            o1.metric("Eligible Customers", opt.n_eligible)
+            o2.metric("Selected for Campaign", opt.n_selected)
+            o3.metric("Excluded", opt.n_excluded)
+            o4.metric("Expected ROI", f"{opt.expected_roi:.1f}x")
 
-        o5, o6, o7 = st.columns(3)
-        o5.metric("Expected ARR Saved", f"${opt.total_expected_saved_arr/1e6:.2f}M")
-        o6.metric("Remaining Budget", f"${opt.remaining_budget:,.0f}")
-        o7.metric("Remaining CS Hours", f"{opt.remaining_cs_hours:.1f}h")
+            o5, o6, o7 = st.columns(3)
+            o5.metric("Expected ARR Saved", f"${opt.total_expected_saved_arr/1e6:.2f}M")
+            o6.metric("Remaining Budget", f"${opt.remaining_budget:,.0f}")
+            o7.metric("Remaining CS Hours", f"{opt.remaining_cs_hours:.1f}h")
 
-        if not opt.selected_customers.empty:
-            st.subheader("Top Selected Customers by Expected ARR Saved")
-            top_n = min(20, len(opt.selected_customers))
-            chart_df = opt.selected_customers.head(top_n).copy()
-            fig_opt = px.bar(
-                chart_df,
-                x="expected_saved_arr",
-                y="customer_id",
-                orientation="h",
-                color="risk_level",
-                color_discrete_map={"High": "#f44336", "Medium": "#FF9800", "Low": "#4CAF50"},
-                labels={"expected_saved_arr": "Expected ARR Saved ($)", "customer_id": "Customer"},
-                height=max(300, top_n * 22),
-            )
-            fig_opt.update_layout(
-                margin=dict(t=10),
-                yaxis=dict(autorange="reversed"),
-                showlegend=True,
-            )
-            st.plotly_chart(fig_opt, use_container_width=True)
+            if opt.selected_customers.empty:
+                st.info("No customers were selected under the current constraints. Try increasing the budget, CS hours, or loosening the ROI filter.")
+            else:
+                st.subheader("Top Selected Customers by Expected ARR Saved")
+                top_n = min(20, len(opt.selected_customers))
+                chart_df = opt.selected_customers.head(top_n).copy()
+                fig_opt = px.bar(
+                    chart_df,
+                    x="expected_saved_arr",
+                    y="customer_id",
+                    orientation="h",
+                    color="risk_level",
+                    color_discrete_map={"High": "#f44336", "Medium": "#FF9800", "Low": "#4CAF50"},
+                    labels={"expected_saved_arr": "Expected ARR Saved ($)", "customer_id": "Customer"},
+                    height=max(300, top_n * 22),
+                )
+                fig_opt.update_layout(
+                    margin=dict(t=10),
+                    yaxis=dict(autorange="reversed"),
+                    showlegend=True,
+                )
+                st.plotly_chart(fig_opt, use_container_width=True)
 
-            st.subheader("Selected Customer Call List")
-            call_list = opt.selected_customers.copy()
-            display_cols = [
-                "customer_id", "risk_level", "arr", "arr_at_risk",
-                "estimated_save_probability", "expected_saved_arr", "expected_roi", "selection_reason",
-            ]
-            available = [c for c in display_cols if c in call_list.columns]
-            call_list["arr"] = call_list["arr"].apply(lambda x: f"${x:,.0f}")
-            call_list["arr_at_risk"] = call_list["arr_at_risk"].apply(lambda x: f"${x:,.0f}")
-            call_list["expected_saved_arr"] = call_list["expected_saved_arr"].apply(lambda x: f"${x:,.0f}")
-            call_list["estimated_save_probability"] = call_list["estimated_save_probability"].apply(
-                lambda x: f"{x:.0%}"
-            )
-            call_list["expected_roi"] = call_list["expected_roi"].apply(lambda x: f"{x:.1f}x")
-            st.dataframe(call_list[available], use_container_width=True, hide_index=True)
+                st.subheader("Selected Customer Call List")
+                call_list = opt.selected_customers.copy()
+                display_cols = [
+                    "customer_id", "risk_level", "arr", "arr_at_risk",
+                    "estimated_save_probability", "expected_saved_arr", "expected_roi", "selection_reason",
+                ]
+                available = [c for c in display_cols if c in call_list.columns]
+                call_list["arr"] = call_list["arr"].apply(lambda x: f"${x:,.0f}")
+                call_list["arr_at_risk"] = call_list["arr_at_risk"].apply(lambda x: f"${x:,.0f}")
+                call_list["expected_saved_arr"] = call_list["expected_saved_arr"].apply(lambda x: f"${x:,.0f}")
+                call_list["estimated_save_probability"] = call_list["estimated_save_probability"].apply(
+                    lambda x: f"{x:.0%}"
+                )
+                call_list["expected_roi"] = call_list["expected_roi"].apply(lambda x: f"{x:.1f}x")
+                call_list = call_list[available].rename(columns={
+                    "customer_id": "Customer",
+                    "risk_level": "Risk Level",
+                    "arr": "ARR",
+                    "arr_at_risk": "ARR at Risk",
+                    "estimated_save_probability": "Save Probability",
+                    "expected_saved_arr": "Expected ARR Saved",
+                    "expected_roi": "ROI",
+                    "selection_reason": "Reason",
+                })
+                st.dataframe(call_list, use_container_width=True, hide_index=True)
 
-            csv_bytes = opt.selected_customers.to_csv(index=False).encode()
-            st.download_button(
-                "Download Call List (CSV)", csv_bytes, "cs_call_list.csv", "text/csv",
-            )
+                csv_bytes = opt.selected_customers.to_csv(index=False).encode("utf-8")
+                st.download_button(
+                    "Download Call List (CSV)", csv_bytes, "cs_call_list.csv", "text/csv",
+                )
 
-        if opt.exclusion_counts:
-            st.subheader("Exclusion Summary")
-            excl_df = pd.DataFrame([
-                {"Reason": k.replace("_", " ").title(), "Customers": v}
-                for k, v in opt.exclusion_counts.items()
-            ])
-            st.dataframe(excl_df, use_container_width=True, hide_index=True)
+            if opt.exclusion_counts:
+                st.subheader("Exclusion Summary")
+                excl_df = pd.DataFrame([
+                    {"Reason": k.replace("_", " ").title(), "Customers": v}
+                    for k, v in opt.exclusion_counts.items()
+                ])
+                st.dataframe(excl_df, use_container_width=True, hide_index=True)
