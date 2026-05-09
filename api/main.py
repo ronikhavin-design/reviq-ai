@@ -1,5 +1,5 @@
 """
-RevIQ AI — FastAPI prediction service
+RevIQ AI: FastAPI prediction service
 Endpoints: /predict-churn, /revenue-risk, /health
 """
 

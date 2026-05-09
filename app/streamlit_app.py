@@ -1,5 +1,5 @@
 """
-RevIQ AI — Executive Revenue Intelligence Dashboard
+RevIQ AI: Executive Revenue Intelligence Dashboard
 """
 
 import sys
@@ -20,7 +20,7 @@ from src.explainability.shap_explainer import (
 )
 
 st.set_page_config(
-    page_title="RevIQ AI — Revenue Intelligence",
+    page_title="RevIQ AI: Revenue Intelligence",
     page_icon="",
     layout="wide",
 )
@@ -96,14 +96,14 @@ if page == "Executive Summary":
             high_count = (risk["risk_level"] == "High").sum()
             st.metric("High-Risk Customers", str(high_count), "Require intervention")
         else:
-            st.metric("High-Risk Customers", "—")
+            st.metric("High-Risk Customers", "N/A")
 
     st.divider()
 
     col_l, col_r = st.columns(2)
 
     with col_l:
-        st.subheader("ARR Trend — Actual vs Target vs Forecast")
+        st.subheader("ARR Trend: Actual vs Target vs Forecast")
         fig = go.Figure()
         fig.add_trace(go.Scatter(x=targets["month"], y=targets["actual_arr"] / 1e6,
                                   mode="lines+markers", name="Actual", line=dict(color="#2196F3")))
@@ -244,6 +244,6 @@ elif page == "Customer Deep Dive":
                 for d in drivers:
                     icon = "🔺" if d["shap_value"] > 0 else "🔻"
                     impact = abs(d["shap_value"])
-                    st.write(f"{icon} **{d['feature']}** — {d['direction']} (impact: {impact:.4f})")
+                    st.write(f"{icon} **{d['feature']}**: {d['direction']} (impact: {impact:.4f})")
         except Exception as e:
             st.error(f"SHAP computation failed: {e}")
