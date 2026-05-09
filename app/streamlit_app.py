@@ -64,6 +64,41 @@ def load_copilot_retriever():
     except Exception:
         return None
 
+def _parse_copilot_chunks(context_used: str) -> list[str]:
+    """
+    Split context_used into individual chunk strings.
+
+    build_prompt() produces:
+        Context:\\n\\n[chunk1]\\n\\n---\\n\\n[chunk2]\\n\\n...\\n\\nQuestion: {q}
+
+    This strips the Context header and Question tail before splitting.
+    """
+    text = context_used
+    if text.startswith("Context:\n\n"):
+        text = text[len("Context:\n\n"):]
+    q_idx = text.rfind("\n\nQuestion:")
+    if q_idx != -1:
+        text = text[:q_idx]
+    return [c.strip() for c in text.split("\n\n---\n\n") if c.strip()]
+
+def _parse_chunk_source(chunk_text: str) -> tuple[str, str]:
+    """
+    Return (source_file, section_title) from a chunk's first line.
+
+    Expected header format: [Source: file.md > Section Title | relevance: X%]
+    """
+    header = chunk_text.split("\n")[0].strip()
+    inner = header
+    if inner.startswith("[Source: "):
+        inner = inner[len("[Source: "):]
+    if inner.endswith("]"):
+        inner = inner[:-1]
+    source_part = inner.split(" | ")[0]
+    if " > " in source_part:
+        src_file, section = source_part.split(" > ", 1)
+        return src_file.strip(), section.strip()
+    return source_part.strip(), ""
+
 
 # ── Sidebar ──────────────────────────────────────────────────────────────────
 
@@ -514,6 +549,10 @@ elif page == "Revenue Copilot":
             value=st.session_state.copilot_question,
             placeholder="e.g. Which customers are most at risk of churning?",
         )
+        top_k = st.slider(
+            "Knowledge base sections to search:",
+            min_value=3, max_value=7, value=5,
+        )
         submitted = st.form_submit_button("Ask Copilot", type="primary")
 
     if submitted and question.strip():
@@ -522,38 +561,64 @@ elif page == "Revenue Copilot":
             try:
                 result = answer_question(
                     question.strip(),
-                    top_k=5,
+                    top_k=top_k,
                     retriever=retriever,
                 )
             except Exception as e:
                 st.error(f"Copilot error: {e}")
                 st.stop()
 
+        # ── Answer + backend badge ─────────────────────────────────────────────
+
+        ans_col, badge_col = st.columns([5, 1])
+        ans_col.subheader("Answer")
+        if result.backend in ("openai", "override"):
+            badge_col.success("LLM mode")
+        else:
+            badge_col.warning("Fallback mode")
+
         if result.backend == "fallback":
-            st.info(
-                "Showing retrieved knowledge base excerpts. "
-                "Set the OPENAI_API_KEY environment variable to receive an interpreted answer."
+            st.caption(
+                "No OpenAI API key detected. Showing the most relevant sections "
+                "retrieved directly from the knowledge base."
             )
 
-        st.subheader("Answer")
         st.markdown(result.answer)
 
-        if result.sources_text:
-            st.divider()
-            st.markdown(result.sources_text)
+        # ── Sources table ──────────────────────────────────────────────────────
 
-        if result.n_chunks_retrieved > 0:
+        chunks = _parse_copilot_chunks(result.context_used)
+
+        if chunks:
+            st.divider()
+            st.subheader("Sources")
+            source_rows = []
+            for chunk_text, score in zip(chunks, result.retrieval_scores):
+                src_file, section = _parse_chunk_source(chunk_text)
+                source_rows.append({
+                    "Section": section or src_file,
+                    "Report": src_file,
+                    "Relevance": f"{score:.0%}",
+                })
+            st.dataframe(
+                pd.DataFrame(source_rows),
+                use_container_width=True,
+                hide_index=True,
+            )
+
+        # ── Evidence expanders ─────────────────────────────────────────────────
+
             st.divider()
             st.subheader("Evidence")
-            for i, (chunk_text, score) in enumerate(
-                zip(
-                    result.context_used.split("\n\n---\n\n")[:-1],
-                    result.retrieval_scores,
-                ),
-                start=1,
+            for i, (chunk_text, score, row) in enumerate(
+                zip(chunks, result.retrieval_scores, source_rows), start=1
             ):
-                header_line = chunk_text.split("\n")[0] if chunk_text else f"Chunk {i}"
-                label = header_line.replace("[Source: ", "").replace("]", "")
-                with st.expander(f"{i}. {label} (relevance: {score:.0%})"):
-                    body_lines = chunk_text.split("\n")[1:]
-                    st.markdown("\n".join(body_lines).strip())
+                with st.expander(f"{i}. {row['Section']}"):
+                    st.caption(
+                        f"Report: {row['Report']}   |   "
+                        f"Section: {row['Section']}   |   "
+                        f"Relevance: {score:.0%}"
+                    )
+                    body = "\n".join(chunk_text.split("\n")[1:]).strip()
+                    if body:
+                        st.markdown(body)
