@@ -362,7 +362,7 @@ elif page == "Retention Planning":
                     "Risk Level": r.risk_level,
                     "Targeted": r.customers_targeted,
                     "Saved (binary)": r.customers_saved,
-                    "ARR Saved ($)": f"${r.arr_saved:,.0f}",
+                    "ARR Saved ($)": f"${r.expected_arr_saved:,.0f}",
                 }
                 for r in sim.impact_by_risk_level
             ]
