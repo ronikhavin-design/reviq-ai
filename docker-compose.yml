@@ -1,4 +1,14 @@
-version: "3.9"
+# RevIQ AI: Docker Compose
+#
+# Prerequisites: run `python run_pipeline.py` at least once before `docker-compose up`
+# so that models/ and data/ directories are populated.
+#
+# Services:
+#   api       - FastAPI prediction service on port 8000
+#   dashboard - Streamlit dashboard on port 8501 (independent of the API)
+#
+# Optional: set OPENAI_API_KEY in your shell or .env file to enable
+# LLM-generated answers in the Revenue Copilot dashboard page.
 
 services:
   api:
@@ -10,7 +20,7 @@ services:
       - ./models:/app/models
       - ./mlruns:/app/mlruns
     environment:
-      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
     command: uvicorn api.main:app --host 0.0.0.0 --port 8000
 
   dashboard:
@@ -20,6 +30,6 @@ services:
     volumes:
       - ./data:/app/data
       - ./models:/app/models
-    depends_on:
-      - api
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
     command: streamlit run app/streamlit_app.py --server.port 8501 --server.address 0.0.0.0

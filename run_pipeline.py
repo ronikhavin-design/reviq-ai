@@ -25,13 +25,13 @@ def main():
     logger.info("=== RevIQ AI Pipeline ===")
 
     # Step 1: Generate synthetic SaaS data
-    logger.info("Step 1/4: Generating synthetic SaaS data...")
+    logger.info("Step 1/6: Generating synthetic SaaS data...")
     from src.data.generate_saas_data import generate_all
     from src.config import CONFIG
     generate_all(CONFIG)
 
     # Step 2: Build feature matrices
-    logger.info("Step 2/4: Building feature matrices...")
+    logger.info("Step 2/6: Building feature matrices...")
     from src.features.build_features import load_raw, build_churn_features, build_arr_features, save_features
     from src.config import SYNTHETIC_DIR
     raw = load_raw(SYNTHETIC_DIR)
@@ -40,16 +40,16 @@ def main():
     save_features(churn_df, arr_df)
 
     # Step 3: Train models
-    logger.info("Step 3/4: Training churn model...")
+    logger.info("Step 3/6: Training churn model...")
     from src.models.train_churn_model import run as train_churn
     churn_model = train_churn(CONFIG)
 
-    logger.info("Step 3/4: Training ARR forecast model...")
+    logger.info("Step 3/6: Training ARR forecast model...")
     from src.models.train_arr_forecast import run as train_arr
     train_arr(CONFIG)
 
     # Step 4: Compute risk scores
-    logger.info("Step 4/4: Computing revenue risk scores...")
+    logger.info("Step 4/6: Computing revenue risk scores...")
     import joblib
     import numpy as np
     from src.config import PROCESSED_DIR, MODELS_DIR
