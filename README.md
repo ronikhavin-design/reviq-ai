@@ -34,6 +34,22 @@ RevIQ AI addresses all four.
 
 ---
 
+## Skills Demonstrated
+
+| Skill Area | What This Project Shows |
+|---|---|
+| **ML Engineering** | 47-feature pipeline (rolling means, lags, trends, one-hot encoding); XGBoost vs Logistic Regression baseline comparison; imbalanced classification with `scale_pos_weight`; evaluation suite: PR-AUC, ROC-AUC, precision, recall, F1; model persistence with joblib |
+| **Data Science** | EDA notebook with business insights; ARR forecasting with TimeSeriesSplit (no data leakage); customer risk segmentation into High / Medium / Low tiers; business-language interpretation of model outputs |
+| **Explainable AI** | SHAP TreeExplainer: per-customer waterfall explanations and global feature importance ranking; business-readable churn driver summaries |
+| **MLOps** | MLflow nested experiment tracking (parent + LR baseline + XGBoost runs); YAML config-driven pipeline; reproducible 6-step orchestrator; 170 pytest tests; GitHub Actions CI; Docker + docker-compose; Makefile |
+| **Backend / API** | FastAPI service with Pydantic-typed schemas: `/predict-churn` (model inference) and `/revenue-risk-summary` endpoints |
+| **Dashboard** | 6-page Streamlit app: Executive Summary, Churn Risk, ARR Forecast, Customer Deep Dive, Retention Planning, Revenue Copilot; KPI cards; interactive Plotly charts; session state |
+| **RAG / LLM Engineering** | Auto-generated Markdown knowledge base -> TF-IDF chunking -> cosine similarity retrieval -> prompt construction -> OpenAI `gpt-4o-mini`; graceful fallback without an API key; source attribution and evidence display |
+| **Optimization** | Scenario Simulator (campaign-level ARR impact); constrained Retention Budget Optimizer ranked by expected ARR saved per dollar of CS spend, subject to budget and capacity limits |
+| **FP&A Domain** | ARR / MRR reasoning; churn rate analysis; forecast-vs-target tracking; retention budget allocation; customer success prioritization by revenue impact |
+
+---
+
 ## Architecture
 
 ```
