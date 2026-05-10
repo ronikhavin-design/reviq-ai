@@ -319,4 +319,4 @@ reviq-ai/
 
 ## Author
 
-Built by Roni Khavin, FP&A Analyst transitioning into AI/ML engineering.
+Built by Roni Khavin, Quantitative Analyst at Intel.
